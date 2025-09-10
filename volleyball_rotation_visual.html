@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyball Rotation Visual</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .court-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .net-line {
+            background: #f39c12;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .court {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-template-rows: repeat(2, 120px);
+            gap: 15px;
+            border: 4px solid #e74c3c;
+            padding: 20px;
+            background: #2ecc71;
+            border-radius: 10px;
+        }
+        
+        .position {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #34495e;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .position:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .position-number {
+            font-weight: bold;
+            font-size: 18px;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .player-name {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .player-gender {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+        
+        .court-labels {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .queues {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .queue {
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .queue-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .queue-player {
+            background: white;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .queue-player:hover {
+            border-color: #3498db;
+            transform: scale(1.05);
+        }
+        
+        .queue-player.next {
+            border-color: #e74c3c;
+            background: #ffe6e6;
+            font-weight: bold;
+        }
+        
+        .rotation-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #3498db;
+        }
+        
+        .rotation-step {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        .arrow {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not allowed;
+            transform: none;
+        }
+        
+        .rotation-counter {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Volleyball Court Rotation System</div>
+        
+        <div class="rotation-counter">
+            Rotation: <span id="rotationCount">0</span>
+        </div>
+        
+        <div class="court-container">
+            <div class="net-line">NET LINE</div>
+            
+            <div class="court">
+                <!-- Front row (near net): positions 1, 2, 3 -->
+                <div class="position" id="pos1">
+                    <div class="position-number">1</div>
+                    <div class="player-name" id="player1">Alex</div>
+                    <div class="player-gender">M</div>
+                </div>
+                <div class="position" id="pos2">
+                    <div class="position-number">2</div>
+                    <div class="player-name" id="player2">Edie</div>
+                    <div class="player-gender">F</div>
+                </div>
+                <div class="position" id="pos3">
+                    <div class="position-number">3</div>
+                    <div class="player-name" id="player3">David</div>
+                    <div class="player-gender">M</div>
+                </div>
+                
+                <!-- Back row (away from net): positions 6, 5, 4 -->
+                <div class="position" id="pos6">
+                    <div class="position-number">6</div>
+                    <div class="player-name" id="player6">Bridget</div>
+                    <div class="player-gender">F</div>
+                </div>
+                <div class="position" id="pos5">
+                    <div class="position-number">5</div>
+                    <div class="player-name" id="player5">Vishesh</div>
+                    <div class="player-gender">M</div>
+                </div>
+                <div class="position" id="pos4">
+                    <div class="position-number">4</div>
+                    <div class="player-name" id="player4">Abby</div>
+                    <div class="player-gender">F</div>
+                </div>
+            </div>
+            
+            <div class="court-labels">
+                Front Row: 1, 2, 3 | Back Row: 6, 5, 4
+            </div>
+        </div>
+        
+        <div class="queues">
+            <div class="queue">
+                <div class="queue-title">Male Queue</div>
+                <div id="maleQueue">
+                    <div class="queue-player next">Sam (Next)</div>
+                    <div class="queue-player">Ross</div>
+                    <div class="queue-player">Ben</div>
+                </div>
+            </div>
+            <div class="queue">
+                <div class="queue-title">Female Queue</div>
+                <div id="femaleQueue">
+                    <div class="queue-player next">Tonya (Next)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="rotation-info">
+            <div class="rotation-step">
+                <strong>Volleyball Rotation Process:</strong>
+            </div>
+            <div class="rotation-step">
+                1. Player at position 6 (back left) exits <span class="arrow">→</span> goes to back of their queue
+            </div>
+            <div class="rotation-step">
+                2. All players shift clockwise: 1→2, 2→3, 3→4, 4→5, 5→6
+            </div>
+            <div class="rotation-step">
+                3. Next player from queue enters at position 1 (front left)
+            </div>
+            <div class="rotation-step">
+                <strong>Layout:</strong> Front row (1,2,3) near net | Back row (6,5,4) away from net
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="rotateOnce()">Rotate Once</button>
+            <button class="btn" onclick="reset()">Reset</button>
+            <button class="btn" onclick="autoRotate()" id="autoBtn">Auto Rotate</button>
+        </div>
+        
+        <div id="rotationLog" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        // Simple approach: just track all players and who's on court
+        const allMales = ['Alex', 'David', 'Vishesh', 'Ben', 'Ross', 'Sam'];
+        const allFemales = ['Bridget', 'Edie', 'Abby', 'Tonya'];
+        
+        // Fair rotation orders
+        const maleRotationOrder = ['Sam', 'Alex', 'Vishesh', 'David', 'Ross', 'Ben'];
+        const femaleRotationOrder = ['Bridget', 'Edie', 'Abby', 'Tonya'];
+        
+        let court = ['Alex', 'Edie', 'David', 'Abby', 'Vishesh', 'Bridget'];
+        let maleIndex = 0; // Next male to enter
+        let femaleIndex = 0; // Next female to enter
+        let rotationCount = 0;
+        let autoRotateInterval = null;
+        
+        function getWaitingPlayers(gender) {
+            const allPlayers = gender === 'male' ? allMales : allFemales;
+            const rotationOrder = gender === 'male' ? maleRotationOrder : femaleRotationOrder;
+            const currentIndex = gender === 'male' ? maleIndex : femaleIndex;
+            
+            // Get players not on court, in rotation order starting from current index
+            const waiting = [];
+            for (let i = 0; i < rotationOrder.length; i++) {
+                const playerIndex = (currentIndex + i) % rotationOrder.length;
+                const player = rotationOrder[playerIndex];
+                if (!court.includes(player)) {
+                    waiting.push({
+                        name: player,
+                        isNext: i === 0
+                    });
+                }
+            }
+            return waiting;
+        }
+        
+        function updateDisplay() {
+            // Update court positions
+            for (let i = 0; i < 6; i++) {
+                const player = court[i];
+                const gender = allMales.includes(player) ? 'M' : 'F';
+                document.getElementById(`player${i + 1}`).textContent = player;
+                document.getElementById(`pos${i + 1}`).querySelector('.player-gender').textContent = gender;
+            }
+            
+            // Update male queue
+            const maleQueueDiv = document.getElementById('maleQueue');
+            maleQueueDiv.innerHTML = '';
+            
+            const waitingMales = getWaitingPlayers('male');
+            if (waitingMales.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'queue-player';
+                div.textContent = 'All males on court';
+                div.style.fontStyle = 'italic';
+                div.style.color = '#7f8c8d';
+                maleQueueDiv.appendChild(div);
+            } else {
+                waitingMales.forEach(({ name, isNext }) => {
+                    const div = document.createElement('div');
+                    div.className = 'queue-player' + (isNext ? ' next' : '');
+                    div.textContent = name + (isNext ? ' (Next)' : '');
+                    maleQueueDiv.appendChild(div);
+                });
+            }
+            
+            // Update female queue
+            const femaleQueueDiv = document.getElementById('femaleQueue');
+            femaleQueueDiv.innerHTML = '';
+            
+            const waitingFemales = getWaitingPlayers('female');
+            if (waitingFemales.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'queue-player';
+                div.textContent = 'All females on court';
+                div.style.fontStyle = 'italic';
+                div.style.color = '#7f8c8d';
+                femaleQueueDiv.appendChild(div);
+            } else {
+                waitingFemales.forEach(({ name, isNext }) => {
+                    const div = document.createElement('div');
+                    div.className = 'queue-player' + (isNext ? ' next' : '');
+                    div.textContent = name + (isNext ? ' (Next)' : '');
+                    femaleQueueDiv.appendChild(div);
+                });
+            }
+            
+            // Update rotation count
+            document.getElementById('rotationCount').textContent = rotationCount;
+        }
+        
+        function rotateOnce() {
+            const exitingPlayer = court[5]; // position 6 exits
+            rotationCount++;
+            
+            // Shift all players clockwise
+            for (let i = 5; i > 0; i--) {
+                court[i] = court[i - 1];
+            }
+            
+            // Find next player to enter
+            const isMaleExiting = allMales.includes(exitingPlayer);
+            let enteringPlayer;
+            
+            if (isMaleExiting) {
+                // Find next available male
+                for (let attempts = 0; attempts < maleRotationOrder.length; attempts++) {
+                    const candidate = maleRotationOrder[maleIndex];
+                    maleIndex = (maleIndex + 1) % maleRotationOrder.length;
+                    
+                    if (!court.includes(candidate)) {
+                        enteringPlayer = candidate;
+                        break;
+                    }
+                }
+            } else {
+                // Find next available female
+                for (let attempts = 0; attempts < femaleRotationOrder.length; attempts++) {
+                    const candidate = femaleRotationOrder[femaleIndex];
+                    femaleIndex = (femaleIndex + 1) % femaleRotationOrder.length;
+                    
+                    if (!court.includes(candidate)) {
+                        enteringPlayer = candidate;
+                        break;
+                    }
+                }
+            }
+            
+            court[0] = enteringPlayer; // Enter at position 1
+            
+            // Log the rotation
+            const log = document.getElementById('rotationLog');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>Rotation ${rotationCount}:</strong> ${exitingPlayer} exits pos 6 → ${enteringPlayer} enters pos 1`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+            
+            updateDisplay();
+        }
+        
+        function reset() {
+            court = ['Alex', 'Edie', 'David', 'Abby', 'Vishesh', 'Bridget'];
+            maleIndex = 0; // Start with Sam
+            femaleIndex = 3; // Start with Tonya
+            rotationCount = 0;
+            
+            if (autoRotateInterval) {
+                clearInterval(autoRotateInterval);
+                autoRotateInterval = null;
+                document.getElementById('autoBtn').textContent = 'Auto Rotate';
+            }
+            
+            document.getElementById('rotationLog').innerHTML = '';
+            updateDisplay();
+        }
+        
+        function autoRotate() {
+            if (autoRotateInterval) {
+                clearInterval(autoRotateInterval);
+                autoRotateInterval = null;
+                document.getElementById('autoBtn').textContent = 'Auto Rotate';
+            } else {
+                autoRotateInterval = setInterval(rotateOnce, 2000);
+                document.getElementById('autoBtn').textContent = 'Stop Auto';
+            }
+        }
+        
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
