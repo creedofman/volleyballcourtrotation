@@ -144,8 +144,9 @@
         }
         
         .queue-player.next {
-            border-color: #e74c3c;
-            background: #ffe6e6;
+            /* No red border or background, just bold for distinction */
+            border-color: #bdc3c7;
+            background: white;
             font-weight: bold;
         }
         
@@ -192,7 +193,7 @@
         
         .btn:disabled {
             background: #bdc3c7;
-            cursor: not allowed;
+            cursor: not-allowed;
             transform: none;
         }
         
@@ -203,12 +204,67 @@
             color: #2c3e50;
             margin: 20px 0;
         }
+
+        /* Added .secondary style for secondary buttons */
+        .btn.secondary {
+            background: #95a5a6;
+            color: #fff;
+        }
+        .btn.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .player-management {
+            max-width: 500px;
+            margin: 0 auto 40px auto;
+            padding: 0 10px;
+        }
+
+        .management-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .player-list {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 600px) {
+            .input-group {
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+            .player-list {
+                max-width: 400px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="title">Volleyball Court Rotation System</div>
-        
+
+        <!-- Move controls here -->
+        <div class="controls">
+            <button class="btn" onclick="rotateOnce()">Rotate Once</button>
+            <button class="btn" onclick="reset()">Reset</button>
+            <button class="btn" onclick="autoRotate()" id="autoBtn">Auto Rotate</button>
+        </div>
+
         <div class="rotation-counter">
             Rotation: <span id="rotationCount">0</span>
         </div>
@@ -261,15 +317,36 @@
             <div class="queue">
                 <div class="queue-title">Male Queue</div>
                 <div id="maleQueue">
-                    <div class="queue-player next">Sam (Next)</div>
-                    <div class="queue-player">Ross</div>
-                    <div class="queue-player">Ben</div>
+                    <!-- JS will populate -->
                 </div>
             </div>
             <div class="queue">
                 <div class="queue-title">Female Queue</div>
                 <div id="femaleQueue">
-                    <div class="queue-player next">Tonya (Next)</div>
+                    <!-- JS will populate -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="player-management">
+            <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">Player Management</h3>
+            
+            <div class="management-section">
+                <h4 style="color: #2c3e50;">Add New Player</h4>
+                <div class="input-group">
+                    <input type="text" id="newPlayerName" placeholder="Enter player name" maxlength="20">
+                    <select id="newPlayerGender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                    <button class="btn" onclick="addPlayer()">Add Player</button>
+                </div>
+            </div>
+            
+            <div class="management-section">
+                <h4 style="color: #2c3e50;">Current Players</h4>
+                <div class="player-list" id="playerList">
+                    <!-- Players will be populated here -->
                 </div>
             </div>
         </div>
@@ -292,76 +369,56 @@
             </div>
         </div>
         
-        <div class="controls">
-            <button class="btn" onclick="rotateOnce()">Rotate Once</button>
-            <button class="btn" onclick="reset()">Reset</button>
-            <button class="btn" onclick="autoRotate()" id="autoBtn">Auto Rotate</button>
-        </div>
-        
         <div id="rotationLog" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 200px; overflow-y: auto;"></div>
     </div>
 
     <script>
         // Simple approach: just track all players and who's on court
-        const allMales = ['Alex', 'David', 'Vishesh', 'Ben', 'Ross', 'Sam'];
-        const allFemales = ['Bridget', 'Edie', 'Abby', 'Tonya'];
+        let allMales = ['Alex', 'David', 'Vishesh', 'Ben', 'Ross', 'Sam'];
+        let allFemales = ['Bridget', 'Edie', 'Abby', 'Tonya'];
         
         // Fair rotation orders
-        const maleRotationOrder = ['Sam', 'Alex', 'Vishesh', 'David', 'Ross', 'Ben'];
-        const femaleRotationOrder = ['Bridget', 'Edie', 'Abby', 'Tonya'];
+        let maleRotationOrder = ['Sam', 'Alex', 'Vishesh', 'David', 'Ross', 'Ben'];
+        let femaleRotationOrder = ['Bridget', 'Edie', 'Abby', 'Tonya'];
         
-        let court = ['Alex', 'Edie', 'David', 'Abby', 'Vishesh', 'Bridget'];
-        let maleIndex = 0; // Next male to enter
-        let femaleIndex = 0; // Next female to enter
+        // Instead of using rotationOrder and index, use explicit queues:
+        let maleQueue = ['Sam', 'Alex', 'Vishesh', 'David', 'Ross', 'Ben'].filter(name => !['Alex', 'David', 'Vishesh'].includes(name));
+        let femaleQueue = ['Bridget', 'Edie', 'Abby', 'Tonya'].filter(name => !['Bridget', 'Edie', 'Abby'].includes(name));
+        
+        // Initial court: 3 males, 3 females
+        let court = ['Alex', 'Edie', 'David', 'Abby', 'Vishesh', 'Bridget']; // positions 1-6
         let rotationCount = 0;
         let autoRotateInterval = null;
-        
-        function getWaitingPlayers(gender) {
-            const allPlayers = gender === 'male' ? allMales : allFemales;
-            const rotationOrder = gender === 'male' ? maleRotationOrder : femaleRotationOrder;
-            const currentIndex = gender === 'male' ? maleIndex : femaleIndex;
-            
-            // Get players not on court, in rotation order starting from current index
-            const waiting = [];
-            for (let i = 0; i < rotationOrder.length; i++) {
-                const playerIndex = (currentIndex + i) % rotationOrder.length;
-                const player = rotationOrder[playerIndex];
-                if (!court.includes(player)) {
-                    waiting.push({
-                        name: player,
-                        isNext: i === 0
-                    });
-                }
-            }
-            return waiting;
-        }
         
         function updateDisplay() {
             // Update court positions
             for (let i = 0; i < 6; i++) {
                 const player = court[i];
-                const gender = allMales.includes(player) ? 'M' : 'F';
-                document.getElementById(`player${i + 1}`).textContent = player;
-                document.getElementById(`pos${i + 1}`).querySelector('.player-gender').textContent = gender;
+                if (!player) {
+                    document.getElementById(`player${i + 1}`).textContent = 'Empty';
+                    document.getElementById(`pos${i + 1}`).querySelector('.player-gender').textContent = '';
+                } else {
+                    const gender = allMales.includes(player) ? 'M' : 'F';
+                    document.getElementById(`player${i + 1}`).textContent = player;
+                    document.getElementById(`pos${i + 1}`).querySelector('.player-gender').textContent = gender;
+                }
             }
             
             // Update male queue
             const maleQueueDiv = document.getElementById('maleQueue');
             maleQueueDiv.innerHTML = '';
-            
-            const waitingMales = getWaitingPlayers('male');
-            if (waitingMales.length === 0) {
+            if (maleQueue.length === 0) {
                 const div = document.createElement('div');
                 div.className = 'queue-player';
-                div.textContent = 'All males on court';
+                div.textContent = 'No males waiting';
                 div.style.fontStyle = 'italic';
                 div.style.color = '#7f8c8d';
                 maleQueueDiv.appendChild(div);
             } else {
-                waitingMales.forEach(({ name, isNext }) => {
+                maleQueue.forEach((name, idx) => {
                     const div = document.createElement('div');
-                    div.className = 'queue-player' + (isNext ? ' next' : '');
-                    div.textContent = name + (isNext ? ' (Next)' : '');
+                    div.className = 'queue-player' + (idx === 0 ? ' next' : '');
+                    div.textContent = name;
                     maleQueueDiv.appendChild(div);
                 });
             }
@@ -369,20 +426,18 @@
             // Update female queue
             const femaleQueueDiv = document.getElementById('femaleQueue');
             femaleQueueDiv.innerHTML = '';
-            
-            const waitingFemales = getWaitingPlayers('female');
-            if (waitingFemales.length === 0) {
+            if (femaleQueue.length === 0) {
                 const div = document.createElement('div');
                 div.className = 'queue-player';
-                div.textContent = 'All females on court';
+                div.textContent = 'No females waiting';
                 div.style.fontStyle = 'italic';
                 div.style.color = '#7f8c8d';
                 femaleQueueDiv.appendChild(div);
             } else {
-                waitingFemales.forEach(({ name, isNext }) => {
+                femaleQueue.forEach((name, idx) => {
                     const div = document.createElement('div');
-                    div.className = 'queue-player' + (isNext ? ' next' : '');
-                    div.textContent = name + (isNext ? ' (Next)' : '');
+                    div.className = 'queue-player' + (idx === 0 ? ' next' : '');
+                    div.textContent = name;
                     femaleQueueDiv.appendChild(div);
                 });
             }
@@ -393,43 +448,31 @@
         
         function rotateOnce() {
             const exitingPlayer = court[5]; // position 6 exits
-            rotationCount++;
-            
+
+            // Add exiting player to their queue
+            if (allMales.includes(exitingPlayer)) {
+                maleQueue.push(exitingPlayer);
+            } else if (allFemales.includes(exitingPlayer)) {
+                femaleQueue.push(exitingPlayer);
+            }
+
             // Shift all players clockwise
             for (let i = 5; i > 0; i--) {
                 court[i] = court[i - 1];
             }
-            
-            // Find next player to enter
-            const isMaleExiting = allMales.includes(exitingPlayer);
-            let enteringPlayer;
-            
-            if (isMaleExiting) {
-                // Find next available male
-                for (let attempts = 0; attempts < maleRotationOrder.length; attempts++) {
-                    const candidate = maleRotationOrder[maleIndex];
-                    maleIndex = (maleIndex + 1) % maleRotationOrder.length;
-                    
-                    if (!court.includes(candidate)) {
-                        enteringPlayer = candidate;
-                        break;
-                    }
-                }
+
+            // Find next player to enter from the correct queue
+            let enteringPlayer = '';
+            if (allMales.includes(exitingPlayer)) {
+                // Male rotates off, male rotates on
+                enteringPlayer = maleQueue.shift();
             } else {
-                // Find next available female
-                for (let attempts = 0; attempts < femaleRotationOrder.length; attempts++) {
-                    const candidate = femaleRotationOrder[femaleIndex];
-                    femaleIndex = (femaleIndex + 1) % femaleRotationOrder.length;
-                    
-                    if (!court.includes(candidate)) {
-                        enteringPlayer = candidate;
-                        break;
-                    }
-                }
+                // Female rotates off, female rotates on
+                enteringPlayer = femaleQueue.shift();
             }
-            
-            court[0] = enteringPlayer; // Enter at position 1
-            
+            court[0] = enteringPlayer;
+
+            rotationCount++;
             // Log the rotation
             const log = document.getElementById('rotationLog');
             const logEntry = document.createElement('div');
@@ -440,18 +483,154 @@
             updateDisplay();
         }
         
+        function areAdjacent(arr, name1, name2) {
+            const n = arr.length;
+            for (let i = 0; i < n; i++) {
+                if (
+                    (arr[i] === name1 && arr[(i + 1) % n] === name2) ||
+                    (arr[i] === name2 && arr[(i + 1) % n] === name1)
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function isAlternatingGender(arr, males, females) {
+            for (let i = 0; i < arr.length; i++) {
+                const curr = arr[i];
+                const next = arr[(i + 1) % arr.length];
+                if (
+                    (males.includes(curr) && males.includes(next)) ||
+                    (females.includes(curr) && females.includes(next))
+                ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function* permute(arr, l = 0) {
+            if (l === arr.length - 1) yield arr.slice();
+            else {
+                for (let i = l; i < arr.length; i++) {
+                    [arr[l], arr[i]] = [arr[i], arr[l]];
+                    yield* permute(arr, l + 1);
+                    [arr[l], arr[i]] = [arr[i], arr[l]];
+                }
+            }
+        }
+
         function reset() {
-            court = ['Alex', 'Edie', 'David', 'Abby', 'Vishesh', 'Bridget'];
-            maleIndex = 0; // Start with Sam
-            femaleIndex = 3; // Start with Tonya
+            // Exception: Only 2 females, keep them always on court, ignore alternation
+            if (allFemales.length === 2) {
+                // Place both females in any two positions, fill rest with males
+                let femalesOnCourt = allFemales.slice();
+                let malesOnCourt = allMales.slice(0, 4);
+                let courtPlayers = [];
+                // Place females at positions 2 and 5 for some spread
+                courtPlayers[1] = femalesOnCourt[0];
+                courtPlayers[4] = femalesOnCourt[1];
+                let m = 0;
+                for (let i = 0; i < 6; i++) {
+                    if (!courtPlayers[i]) {
+                        courtPlayers[i] = malesOnCourt[m++] || '';
+                    }
+                }
+                court = courtPlayers;
+                maleQueue = allMales.filter(name => !court.includes(name));
+                femaleQueue = []; // always on court
+                rotationCount = 0;
+                if (autoRotateInterval) {
+                    clearInterval(autoRotateInterval);
+                    autoRotateInterval = null;
+                    document.getElementById('autoBtn').textContent = 'Auto Rotate';
+                }
+                document.getElementById('rotationLog').innerHTML = '';
+                updateDisplay();
+                return;
+            }
+
+            // Normal case: try to alternate gender, then avoid Tonya/Ross, then Ben/Bridget
+            const malesOnCourt = allMales.slice(0, 3);
+            const femalesOnCourt = allFemales.slice(0, 3);
+            let allPlayers = [...malesOnCourt, ...femalesOnCourt];
+
+            // Try all permutations for best fit
+            let best = null;
+            for (const perm of permute(allPlayers)) {
+                if (
+                    isAlternatingGender(perm, allMales, allFemales) &&
+                    !areAdjacent(perm, 'Tonya', 'Ross') &&
+                    !areAdjacent(perm, 'Ben', 'Bridget')
+                ) {
+                    best = perm;
+                    break;
+                }
+            }
+            if (!best) {
+                // Try to alternate gender and avoid Tonya/Ross
+                for (const perm of permute(allPlayers)) {
+                    if (
+                        isAlternatingGender(perm, allMales, allFemales) &&
+                        !areAdjacent(perm, 'Tonya', 'Ross')
+                    ) {
+                        best = perm;
+                        break;
+                    }
+                }
+            }
+            if (!best) {
+                // Try to alternate gender only
+                for (const perm of permute(allPlayers)) {
+                    if (isAlternatingGender(perm, allMales, allFemales)) {
+                        best = perm;
+                        break;
+                    }
+                }
+            }
+            if (!best) {
+                // Try to avoid Tonya/Ross, then Ben/Bridget
+                for (const perm of permute(allPlayers)) {
+                    if (
+                        !areAdjacent(perm, 'Tonya', 'Ross') &&
+                        !areAdjacent(perm, 'Ben', 'Bridget')
+                    ) {
+                        best = perm;
+                        break;
+                    }
+                }
+            }
+            if (!best) {
+                // Try to avoid Tonya/Ross only
+                for (const perm of permute(allPlayers)) {
+                    if (!areAdjacent(perm, 'Tonya', 'Ross')) {
+                        best = perm;
+                        break;
+                    }
+                }
+            }
+            if (!best) {
+                // Fallback: any order
+                best = allPlayers;
+            }
+
+            // Fill up to 6 positions, pad with empty if needed
+            while (best.length < 6) best.push('');
+            court = best;
+
+            // Rebuild queues with remaining players
+            maleQueue = allMales.filter(name => !court.includes(name));
+            femaleQueue = allFemales.filter(name => !court.includes(name));
+
             rotationCount = 0;
-            
+
             if (autoRotateInterval) {
                 clearInterval(autoRotateInterval);
                 autoRotateInterval = null;
                 document.getElementById('autoBtn').textContent = 'Auto Rotate';
             }
-            
+
             document.getElementById('rotationLog').innerHTML = '';
             updateDisplay();
         }
@@ -467,8 +646,95 @@
             }
         }
         
-        // Initialize display
-        updateDisplay();
+        // Render the player list with remove buttons
+        function renderPlayerList() {
+            const playerListDiv = document.getElementById('playerList');
+            playerListDiv.innerHTML = '';
+
+            // Combine and show all players
+            const allPlayers = [...allMales, ...allFemales];
+            allPlayers.forEach(name => {
+                const gender = allMales.includes(name) ? 'Male' : 'Female';
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+                div.style.margin = '4px 0';
+
+                const label = document.createElement('span');
+                label.textContent = `${name} (${gender})`;
+
+                const btn = document.createElement('button');
+                btn.textContent = 'Remove';
+                btn.className = 'btn secondary';
+                btn.style.padding = '4px 10px';
+                btn.style.fontSize = '13px';
+                btn.onclick = function() { removePlayer(name); };
+
+                div.appendChild(label);
+                div.appendChild(btn);
+                playerListDiv.appendChild(div);
+            });
+        }
+
+        // Remove player from all lists and update display
+        function removePlayer(name) {
+            // Remove from allMales/allFemales arrays
+            allMales = allMales.filter(m => m !== name);
+            allFemales = allFemales.filter(f => f !== name);
+
+            // Remove from rotation orders
+            maleRotationOrder = maleRotationOrder.filter(m => m !== name);
+            femaleRotationOrder = femaleRotationOrder.filter(f => f !== name);
+
+            // Remove from queues
+            maleQueue = maleQueue.filter(m => m !== name);
+            femaleQueue = femaleQueue.filter(f => f !== name);
+
+            // Remove from court
+            let courtIdx = court.indexOf(name);
+            if (courtIdx !== -1) {
+                court[courtIdx] = '';
+            }
+
+            // Reset and reapply rotation logic
+            reset();
+            renderPlayerList();
+            updateDisplay();
+        }
+
+        // Add player (existing logic, now calls renderPlayerList)
+        function addPlayer() {
+            const name = document.getElementById('newPlayerName').value.trim();
+            const gender = document.getElementById('newPlayerGender').value;
+            if (!name) return;
+
+            if (allMales.includes(name) || allFemales.includes(name)) {
+                alert('Player already exists.');
+                return;
+            }
+
+            if (gender === 'male') {
+                allMales = [...allMales, name];
+                maleRotationOrder = [...maleRotationOrder, name];
+            } else {
+                allFemales = [...allFemales, name];
+                femaleRotationOrder = [...femaleRotationOrder, name];
+            }
+            document.getElementById('newPlayerName').value = '';
+            
+            renderPlayerList();
+            updateDisplay();
+        }
+
+        // Initialize display and optimize on load
+        function initialize() {
+            updateDisplay();
+            renderPlayerList();
+        }
+        
+        // Call initialize when page loads
+        initialize();
     </script>
 </body>
 </html>
